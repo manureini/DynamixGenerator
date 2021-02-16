@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 
@@ -10,7 +9,6 @@ namespace DynamixGenerator
     {
         protected Type mTypeReference;
 
-        [Key]
         public virtual Guid Id { get; set; }
 
         public virtual string Name { get; set; }
