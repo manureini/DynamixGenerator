@@ -8,13 +8,13 @@ namespace DynamixGenerator
 {
     public static class DynamixGenerator
     {
-        public static string GenerateCode(IEnumerable<DynamixClass> pDynamixClasses)
+        public static string GenerateCode(string pAssemblyName, IEnumerable<DynamixClass> pDynamixClasses)
         {
             StringBuilder sb = new StringBuilder();
 
             foreach (var dynClass in pDynamixClasses)
             {
-                sb.AppendLine($"namespace {dynClass.Namespace}");
+                sb.AppendLine($"namespace {dynClass.Namespace ?? pAssemblyName}");
                 sb.AppendLine("{"); //namespace
 
                 sb.AppendLine("[global::System.CodeDom.Compiler.GeneratedCode(\"Dynamix\", \"1.0\")]");
@@ -23,7 +23,14 @@ namespace DynamixGenerator
 
                 foreach (var property in dynClass.Properties)
                 {
-                    sb.AppendLine($@"public global::{property.Type.FullName} {property.Name} {{ get; set; }}");
+                    string typeName = property.Type.FullName;
+
+                    if (property.Type is DynamixType dt && dt.Namespace == null)
+                    {
+                        typeName = pAssemblyName + "." + dt.Name;
+                    }
+
+                    sb.AppendLine($@"public global::{typeName} {property.Name} {{ get; set; }}");
 
                     if (property.DefaultCode != null)
                     {

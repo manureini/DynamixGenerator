@@ -18,7 +18,6 @@ namespace DynamixGenerator.Tests
             {
                 Id = Guid.NewGuid(),
                 Name = "Person",
-                Namespace = "Dynamic",
                 Properties = new List<DynamixProperty>()
             };
             classPerson.Properties.Add(new DynamixProperty()
@@ -40,7 +39,6 @@ namespace DynamixGenerator.Tests
             {
                 Id = Guid.NewGuid(),
                 Name = "Address",
-                Namespace = "Dynamic",
                 Properties = new List<DynamixProperty>()
             };
             classAddress.Properties.Add(new DynamixProperty()
@@ -75,7 +73,7 @@ namespace DynamixGenerator.Tests
         [TestMethod]
         public void TestCodeGenerator()
         {
-            var code = DynamixGenerator.GenerateCode(GetStorage().GetDynamixClasses());
+            var code = DynamixGenerator.GenerateCode("Dynamic", GetStorage().GetDynamixClasses());
 
             Assert.IsTrue(code.Contains("global::System.String LastName { get; set; }"));
             Assert.IsTrue(code.Contains("global::Dynamic.Person Person { get; set; }"));
@@ -86,9 +84,9 @@ namespace DynamixGenerator.Tests
         public void TestCompileCodeAndLoad()
         {
             DynamixService ds = new DynamixService(GetStorage());
-            var asm = ds.Initialize("DynamicAsm");
-
-            var personType = asm.GetType("Dynamic.Person");
+            var asm = ds.CreateAndLoadAssembly("DynamicAsm");
+ 
+            var personType = asm.GetType("DynamicAsm.Person");
             dynamic person = Activator.CreateInstance(personType);
             person.FirstName = "Hans";
         }

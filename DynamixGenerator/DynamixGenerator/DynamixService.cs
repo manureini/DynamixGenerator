@@ -16,10 +16,13 @@ namespace DynamixGenerator
             Storage = pStorage;
         }
 
-        public Assembly Initialize(string pAssemblyName)
+        public Assembly CreateAndLoadAssembly(string pAssemblyName)
         {
+            if (AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == pAssemblyName))
+                throw new Exception($"Assembly with name {pAssemblyName} already loaded");
+
             var classes = Storage.GetDynamixClasses();
-            var code = DynamixGenerator.GenerateCode(classes);
+            var code = DynamixGenerator.GenerateCode(pAssemblyName, classes);
 
             DynamixCompiler compiler = new DynamixCompiler(pAssemblyName);
             byte[] assembly = compiler.CompileCode(code);

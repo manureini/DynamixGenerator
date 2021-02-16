@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.IO;
 
 namespace DynamixGenerator
@@ -31,7 +32,13 @@ namespace DynamixGenerator
 
             using MemoryStream msDll = new();
 
-            compilation.Emit(peStream: msDll);
+            var result = compilation.Emit(peStream: msDll);
+
+            if(!result.Success)
+            {
+                throw new Exception("Generated code did not compile!");
+            }
+
             msDll.Seek(0, SeekOrigin.Begin);
 
             return msDll.ToArray();
