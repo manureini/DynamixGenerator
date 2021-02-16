@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30914.41
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamixGenerator", "DynamixGenerator\DynamixGenerator.csproj", "{78EC0155-B42B-458C-A0D0-C052CA877B20}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamixGenerator.Tests", "DynamixGenerator.Tests\DynamixGenerator.Tests.csproj", "{AED2EF0A-5CBE-4160-B706-1E00FDE5C9B6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{78EC0155-B42B-458C-A0D0-C052CA877B20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78EC0155-B42B-458C-A0D0-C052CA877B20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78EC0155-B42B-458C-A0D0-C052CA877B20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78EC0155-B42B-458C-A0D0-C052CA877B20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AED2EF0A-5CBE-4160-B706-1E00FDE5C9B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AED2EF0A-5CBE-4160-B706-1E00FDE5C9B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AED2EF0A-5CBE-4160-B706-1E00FDE5C9B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AED2EF0A-5CBE-4160-B706-1E00FDE5C9B6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {54DFE8D9-C5CB-444B-B14A-4CC3CAF520A8}
+	EndGlobalSection
+EndGlobal
