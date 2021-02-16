@@ -11,6 +11,8 @@ namespace DynamixGenerator
     {
         public IDynamixStorage Storage { get; protected set; }
 
+        public DynamixClass[] LoadedClasses;
+
         public DynamixService(IDynamixStorage pStorage)
         {
             Storage = pStorage;
@@ -27,12 +29,15 @@ namespace DynamixGenerator
             DynamixCompiler compiler = new DynamixCompiler(pAssemblyName);
             byte[] assembly = compiler.CompileCode(code);
 
-            return AppDomain.CurrentDomain.Load(assembly);
-        }
+            var asm = AppDomain.CurrentDomain.Load(assembly);
 
-        public void AddClass(DynamixClass pClass)
-        {
-            Storage.UpdateDynamixClass(pClass);
+            foreach (var dynClass in classes)
+            {
+                dynClass.UpdateTypeReference(asm);
+            }
+
+            LoadedClasses = classes.ToArray();
+            return asm;
         }
     }
 }

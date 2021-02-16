@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DynamixGenerator.Tests
 {
@@ -83,10 +84,13 @@ namespace DynamixGenerator.Tests
         [TestMethod]
         public void TestCompileCodeAndLoad()
         {
-            DynamixService ds = new DynamixService(GetStorage());
+            var storage = GetStorage();
+            DynamixService ds = new DynamixService(storage);
             var asm = ds.CreateAndLoadAssembly("DynamicAsm");
- 
-            var personType = asm.GetType("DynamicAsm.Person");
+
+            var classPerson = ds.LoadedClasses.First();
+
+            var personType = classPerson.GetTypeReference();
             dynamic person = Activator.CreateInstance(personType);
             person.FirstName = "Hans";
         }

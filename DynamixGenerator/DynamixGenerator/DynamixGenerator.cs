@@ -18,6 +18,7 @@ namespace DynamixGenerator
                 sb.AppendLine("{"); //namespace
 
                 sb.AppendLine("[global::System.CodeDom.Compiler.GeneratedCode(\"Dynamix\", \"1.0\")]");
+                sb.AppendLine($"[global::DynamixGenerator.DynamixId(\"{dynClass.Id}\")]");
                 sb.AppendLine($"public class {dynClass.Name}");
                 sb.AppendLine("{"); //class
 
