@@ -1,0 +1,23 @@
+﻿<?xml version = "1.0" encoding = "utf-8" ?>
+
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"
+                   assembly="DynamixGenerator"
+                   namespace = "DynamixGenerator">
+
+	<class name="DynamixClass">
+
+		<id name="Id" type="guid" >
+			<generator class="assigned"/>
+		</id>
+
+		<property name="Name" column="`Name`" unique="true" />
+		<property name="Namespace" />
+
+		<set name="Properties" cascade="save-update">
+			<key column="DynamixClassId"/>
+			<one-to-many class="DynamixProperty"/>
+		</set>
+
+	</class>
+
+</hibernate-mapping>

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace DynamixGenerator
@@ -11,24 +12,25 @@ namespace DynamixGenerator
 
             foreach (var dynClass in pDynamixClasses)
             {
-                sb.AppendLine($"namespace {dynClass.Namespace ?? pAssemblyName}");
+                sb.AppendLine($"namespace {dynClass.Namespace}");
                 sb.AppendLine("{"); //namespace
 
                 sb.AppendLine("[global::System.CodeDom.Compiler.GeneratedCode(\"Dynamix\", \"1.0\")]");
                 sb.AppendLine($"[global::DynamixGenerator.DynamixId(\"{dynClass.Id}\")]");
                 sb.AppendLine($"public class {dynClass.Name}");
                 sb.AppendLine("{"); //class
+                sb.AppendLine($@"public global::System.Guid Id {{ get; set; }}");
 
                 foreach (var property in dynClass.Properties)
                 {
-                    string typeName = property.Type.FullName;
+                    string typename = property.GetFullTypeName();
 
-                    if (property.Type is DynamixType dt && dt.Namespace == null)
+                    if(property.IsOneToMany)
                     {
-                        typeName = pAssemblyName + "." + dt.Name;
+                        typename = $"System.Collections.Generic.ICollection<{typename}>";
                     }
 
-                    sb.AppendLine($@"public global::{typeName} {property.Name} {{ get; set; }}");
+                    sb.AppendLine($@"public global::{typename} {property.Name} {{ get; set; }}");
 
                     if (property.DefaultCode != null)
                     {

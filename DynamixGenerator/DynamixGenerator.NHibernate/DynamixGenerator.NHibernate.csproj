@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Mappings\DynamixClass.hbm.xml" />
+    <None Remove="Mappings\DynamixProperty.hbm.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Mappings\DynamixClass.hbm.xml" />
+    <EmbeddedResource Include="Mappings\DynamixProperty.hbm.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NHibernate" Version="5.3.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DynamixGenerator\DynamixGenerator.csproj" />
+  </ItemGroup>
+
+</Project>

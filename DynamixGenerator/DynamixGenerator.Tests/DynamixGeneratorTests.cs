@@ -8,11 +8,8 @@ namespace DynamixGenerator.Tests
     [TestClass]
     public class DynamixGeneratorTests
     {
-
-
         public IDynamixStorage GetStorage()
         {
-
             var ret = new MemoryDynamixStorage();
 
             var classPerson = new DynamixClass()
@@ -26,14 +23,14 @@ namespace DynamixGenerator.Tests
                 Id = Guid.NewGuid(),
                 Name = "FirstName",
                 Type = typeof(string),
-                DynamicClass = classPerson
+                DynamixClass = classPerson
             });
             classPerson.Properties.Add(new DynamixProperty()
             {
                 Id = Guid.NewGuid(),
                 Name = "LastName",
                 Type = typeof(string),
-                DynamicClass = classPerson
+                DynamixClass = classPerson
             });
 
             var classAddress = new DynamixClass()
@@ -47,23 +44,23 @@ namespace DynamixGenerator.Tests
                 Id = Guid.NewGuid(),
                 Name = "Street",
                 Type = typeof(string),
-                DynamicClass = classAddress
+                DynamixClass = classAddress
             });
             classAddress.Properties.Add(new DynamixProperty()
             {
                 Id = Guid.NewGuid(),
                 Name = "PostCode",
                 Type = typeof(int),
-                DynamicClass = classAddress
+                DynamixClass = classAddress
             });
             classAddress.Properties.Add(new DynamixProperty()
             {
                 Id = Guid.NewGuid(),
                 Name = "Person",
                 Type = classPerson.GetTypeReference(),
-                DynamicClass = classAddress
+                DynamixClass = classAddress,
+                IsReference = true
             });
-
 
             ret.Add(classPerson);
             ret.Add(classAddress);

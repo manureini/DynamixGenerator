@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<hibernate-configuration xmlns="urn:nhibernate-configuration-2.2">
+  <session-factory>
+    <!-- JDBC Database connection settings -->
+
+	  <property name="connection.driver_class">NHibernate.Driver.NpgsqlDriver</property>
+	  <property name="connection.connection_string">
+		  Server=localhost;Database=dynamix_test;User ID=postgres;Password=1200manuel;Enlist=true;
+	  </property>
+	  <property name="dialect">NHibernate.Dialect.PostgreSQL83Dialect</property>
+
+	  <!-- Select our SQL dialect -->
+    <!-- Echo the SQL to stdout -->
+    <property name="show_sql">true</property>
+
+    <!-- Drop and re-create the database schema on startup -->
+    <!-- <property name="hbm2ddl.auto">create-drop</property> -->
+ 
+  </session-factory>
+</hibernate-configuration>

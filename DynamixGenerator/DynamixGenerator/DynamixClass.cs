@@ -13,11 +13,13 @@ namespace DynamixGenerator
 
         public virtual string Name { get; set; }
 
-        public virtual string Namespace { get; set; }
+        public virtual string Namespace { get; set; } = "DynamixGenerated";
+
+        public virtual string FullName => Namespace + "." + Name;
 
         public virtual ICollection<DynamixProperty> Properties { get; set; }
 
-        public Type GetTypeReference()
+        public virtual Type GetTypeReference()
         {
             if (mTypeReference != null)
                 return mTypeReference;
@@ -25,7 +27,7 @@ namespace DynamixGenerator
             return new DynamixType(Id, Namespace, Name);
         }
 
-        internal void UpdateTypeReference(Assembly pAssembly)
+        public virtual void UpdateTypeReference(Assembly pAssembly)
         {
             mTypeReference = pAssembly.GetTypes().First(c =>
             {
@@ -35,6 +37,13 @@ namespace DynamixGenerator
 
                 return attr.Id == Id;
             });
+
+            Namespace = mTypeReference.Namespace;
+
+            foreach (var property in Properties)
+            {
+                property.UpdateTypeReference(mTypeReference);
+            }
         }
     }
 }

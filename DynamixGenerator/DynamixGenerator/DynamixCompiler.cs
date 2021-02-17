@@ -17,7 +17,7 @@ namespace DynamixGenerator
             mReferenceHelper = new ReferenceHelper(a => a.FullName.StartsWith(AssemblyName));
         }
 
-        public byte[] CompileCode(string pCode)
+        public byte[] CompileCode(string pCode) 
         {
             var parseOptions = new CSharpParseOptions(kind: SourceCodeKind.Regular, languageVersion: LanguageVersion.Latest);
             var syntaxTree = CSharpSyntaxTree.ParseText(pCode, parseOptions);

@@ -12,7 +12,7 @@ namespace DynamixGenerator
 
         public override Assembly Assembly => typeof(DynamixType).Assembly;
 
-        public override string AssemblyQualifiedName => Assembly.FullName;
+        public override string AssemblyQualifiedName => FullName;
 
         public override Type BaseType => null;
 
@@ -140,11 +140,11 @@ namespace DynamixGenerator
             return null;
         }
 
-        protected override bool HasElementTypeImpl() => true;
+        protected override bool HasElementTypeImpl() => false;
 
         protected override bool IsArrayImpl() => false;
 
-        protected override bool IsByRefImpl() => true;
+        protected override bool IsByRefImpl() => false;
 
         protected override bool IsCOMObjectImpl() => false;
 
