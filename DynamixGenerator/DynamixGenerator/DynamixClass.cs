@@ -42,7 +42,7 @@ namespace DynamixGenerator
 
             foreach (var property in Properties)
             {
-                property.UpdateTypeReference(mTypeReference);
+                property.UpdateTypeReferenceFromClass(mTypeReference);
             }
         }
     }

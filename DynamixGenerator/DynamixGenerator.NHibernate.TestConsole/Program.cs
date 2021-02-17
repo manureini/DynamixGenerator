@@ -91,7 +91,7 @@ namespace DynamixGenerator.NHibernate.TestConsole
             SchemaUpdate schemaUpdate = new SchemaUpdate(cfg);
             schemaUpdate.Execute(true, true);
 
-            //   FillStorage(session);
+            FillStorage(session);
             session.Flush();
 
             var storage = new NHibernateDynamixStorage(session);

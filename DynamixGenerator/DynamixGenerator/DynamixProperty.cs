@@ -25,6 +25,7 @@ namespace DynamixGenerator
             set
             {
                 mType = value;
+                TypeName = mType.AssemblyQualifiedName;
             }
         }
 
@@ -40,17 +41,17 @@ namespace DynamixGenerator
 
         public virtual string GetPropertyTypeName()
         {
-            if(IsOneToMany)
-            {
-                return TypeName;
-            }
-
             return Type?.FullName ?? TypeName;
         }
 
-        public virtual void UpdateTypeReference(Type pClassType)
+        public virtual void UpdateTypeReferenceFromClass(Type pClassType)
         {
             Type = pClassType.GetProperty(Name).PropertyType;
+
+            if (IsOneToMany)
+            {
+                Type = Type.GetGenericArguments()[0];
+            }
         }
     }
 }

@@ -111,7 +111,7 @@ namespace DynamixGenerator.NHibernate
 
             if (pDynProperty.IsReference)
             {
-                PersistentClass referencedPersistentClass = pConfiguration.GetClassMapping(pDynProperty.GetPropertyTypeName());
+                PersistentClass referencedPersistentClass = pConfiguration.GetClassMapping(pDynProperty.Type.FullName);
 
                 IValue relation;
 
@@ -119,13 +119,11 @@ namespace DynamixGenerator.NHibernate
                 {
                     string roleName = persistentClass.EntityName + "." + pDynProperty.Name;
 
-                    var elementType = pDynProperty.Type.GetGenericArguments()[0];
-
                     var existing = mapping.IterateCollections.FirstOrDefault(c => c.Role == roleName);
 
                     if (existing != null)
                     {
-                        existing.GenericArguments = new Type[] { elementType };
+                        existing.GenericArguments = new Type[] { pDynProperty.Type };
                         return;
                     }
 
@@ -147,7 +145,7 @@ namespace DynamixGenerator.NHibernate
                         },
 
                         CollectionTable = referencedPersistentClass.Table,
-                        GenericArguments = new Type[] { elementType },
+                        GenericArguments = new Type[] { pDynProperty.Type },
                         IsGeneric = true,
                         Role = roleName
                     };

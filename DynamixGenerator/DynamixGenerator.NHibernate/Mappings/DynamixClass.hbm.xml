@@ -10,7 +10,7 @@
 			<generator class="assigned"/>
 		</id>
 
-		<property name="Name" column="`Name`" unique="true" />
+		<property name="Name" column="`name`" unique="true" />
 		<property name="Namespace" />
 
 		<set name="Properties" cascade="save-update">
