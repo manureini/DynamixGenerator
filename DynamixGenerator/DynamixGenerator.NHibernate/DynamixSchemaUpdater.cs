@@ -111,11 +111,6 @@ namespace DynamixGenerator.NHibernate
 
             if (pDynProperty.IsReference)
             {
-                var columnName = pDynProperty.Name + "Id";
-
-                if (persistentClass.Table.ColumnIterator.Any(c => c.Name == columnName))
-                    return;
-
                 PersistentClass referencedPersistentClass = pConfiguration.GetClassMapping(pDynProperty.GetFullTypeName());
 
                 IValue relation;
@@ -124,8 +119,15 @@ namespace DynamixGenerator.NHibernate
                 {
                     string roleName = persistentClass.EntityName + "." + pDynProperty.Name;
 
-                    if (mapping.IterateCollections.Any(c => c.Role == roleName))
+                    var elementType = pDynProperty.Type.GetGenericArguments()[0];
+
+                    var existing = mapping.IterateCollections.FirstOrDefault(c => c.Role == roleName);
+
+                    if (existing != null)
+                    {
+                        existing.GenericArguments = new Type[] { elementType };
                         return;
+                    }
 
                     var keyName = pDynProperty.DynamixClass.Name + "Id";
 
@@ -134,8 +136,6 @@ namespace DynamixGenerator.NHibernate
                     DependantValue valueKey = new DependantValue(referencedPersistentClass.Table, referencedPersistentClass.Identifier);
 
                     valueKey.AddColumn(foreignColumn);
-
-                    var elementType = pDynProperty.Type.GetGenericArguments()[0];
 
                     var set = new Set(persistentClass)
                     {
@@ -148,7 +148,6 @@ namespace DynamixGenerator.NHibernate
 
                         CollectionTable = referencedPersistentClass.Table,
                         GenericArguments = new Type[] { elementType },
-                        CacheRegionName = persistentClass.EntityName + "." + pDynProperty.Name,
                         IsGeneric = true,
                         Role = roleName
                     };
@@ -158,6 +157,11 @@ namespace DynamixGenerator.NHibernate
                 }
                 else
                 {
+                    var columnName = pDynProperty.Name + "Id";
+
+                    if (persistentClass.Table.ColumnIterator.Any(c => c.Name == columnName))
+                        return;
+
                     var manyToOne = new ManyToOne(referencedPersistentClass.Table)
                     {
                         PropertyName = pDynProperty.Name,
@@ -181,7 +185,6 @@ namespace DynamixGenerator.NHibernate
                 {
                     Value = relation,
                     Name = pDynProperty.Name,
-                    //     PropertyAccessorName = "property"
                 };
 
                 persistentClass.AddProperty(prop);
