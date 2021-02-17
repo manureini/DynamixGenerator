@@ -38,7 +38,7 @@ namespace DynamixGenerator
 
         public virtual bool IsUnique { get; set; }
 
-        public virtual string GetFullTypeName()
+        public virtual string GetPropertyTypeName()
         {
             if(IsOneToMany)
             {

@@ -23,7 +23,7 @@ namespace DynamixGenerator
 
                 foreach (var property in dynClass.Properties)
                 {
-                    string typename = property.GetFullTypeName();
+                    string typename = property.GetPropertyTypeName();
 
                     if(property.IsOneToMany)
                     {

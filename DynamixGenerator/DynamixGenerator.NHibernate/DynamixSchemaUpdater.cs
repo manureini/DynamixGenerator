@@ -111,7 +111,7 @@ namespace DynamixGenerator.NHibernate
 
             if (pDynProperty.IsReference)
             {
-                PersistentClass referencedPersistentClass = pConfiguration.GetClassMapping(pDynProperty.GetFullTypeName());
+                PersistentClass referencedPersistentClass = pConfiguration.GetClassMapping(pDynProperty.GetPropertyTypeName());
 
                 IValue relation;
 
