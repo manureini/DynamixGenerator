@@ -7,13 +7,15 @@ namespace DynamixGenerator
 {
     public class DynamixClass
     {
+        public const string DYNAMIX_DEFAULT_NAMESPACE_PREFIX = "DynamixGenerated";
+
         protected Type mTypeReference;
 
         public virtual Guid Id { get; set; }
 
         public virtual string Name { get; set; }
 
-        public virtual string Namespace { get; set; } = "DynamixGenerated";
+        public virtual string Namespace { get; set; } = DYNAMIX_DEFAULT_NAMESPACE_PREFIX;
 
         public virtual string FullName => Namespace + "." + Name;
 

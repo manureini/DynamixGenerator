@@ -1,7 +1,5 @@
 ﻿using NHibernate;
-using NHibernate.Util;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace DynamixGenerator.NHibernate
 {

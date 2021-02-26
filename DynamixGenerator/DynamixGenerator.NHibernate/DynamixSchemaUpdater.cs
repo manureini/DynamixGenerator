@@ -147,7 +147,8 @@ namespace DynamixGenerator.NHibernate
                         CollectionTable = referencedPersistentClass.Table,
                         GenericArguments = new Type[] { pDynProperty.Type },
                         IsGeneric = true,
-                        Role = roleName
+                        Role = roleName,
+                        IsLazy = false //TODO?
                     };
 
                     mapping.AddCollection(set);

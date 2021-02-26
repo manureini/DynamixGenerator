@@ -20,6 +20,12 @@ namespace DynamixGenerator
                     return mType;
 
                 mType = Type.GetType(TypeName);
+
+                if (mType == null)
+                {
+                    throw new Exception($"Type with name {TypeName} not found!");
+                }
+
                 return mType;
             }
             set

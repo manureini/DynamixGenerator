@@ -4,20 +4,20 @@
                    assembly="DynamixGenerator"
                    namespace = "DynamixGenerator">
 
-	<class name="DynamixClass">
+  <class name="DynamixClass">
 
-		<id name="Id" type="guid" >
-			<generator class="assigned"/>
-		</id>
+    <id name="Id" type="guid" >
+      <generator class="assigned"/>
+    </id>
 
-		<property name="Name" column="`name`" unique="true" />
-		<property name="Namespace" />
+    <property name="Name" column="`name`" unique="true" />
+    <property name="Namespace" />
 
-		<set name="Properties" cascade="save-update">
-			<key column="DynamixClassId"/>
-			<one-to-many class="DynamixProperty"/>
-		</set>
+    <set name="Properties" cascade="save-update" lazy="false">
+      <key column="DynamixClassId"/>
+      <one-to-many class="DynamixProperty"/>
+    </set>
 
-	</class>
+  </class>
 
 </hibernate-mapping>
