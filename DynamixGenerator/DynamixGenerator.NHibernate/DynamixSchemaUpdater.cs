@@ -22,17 +22,19 @@ namespace DynamixGenerator.NHibernate
                 if (dynClass.Properties != null)
                     foreach (var property in dynClass.Properties)
                     {
-                        if (!property.IsOneToMany)
+                        if (!property.IsReference)
                             AddProperty(pConfiguration, property);
                     }
             }
-
+            
+            RunSchemaUpdate(pConfiguration);
+            
             foreach (var dynClass in pClasses)
             {
                 if (dynClass.Properties != null)
                     foreach (var property in dynClass.Properties)
                     {
-                        if (property.IsOneToMany)
+                        if (property.IsReference)
                             AddProperty(pConfiguration, property);
                     }
             }
