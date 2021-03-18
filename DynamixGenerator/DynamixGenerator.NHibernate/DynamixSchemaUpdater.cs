@@ -1,14 +1,18 @@
 ﻿using NHibernate.Cfg;
 using NHibernate.Mapping;
 using NHibernate.Tool.hbm2ddl;
+using NHibernate.Type;
 using NHibernate.Util;
 using System;
 using System.Linq;
+using System.Reflection;
 
 namespace DynamixGenerator.NHibernate
 {
     public class DynamixSchemaUpdater
     {
+        private static readonly FieldInfo EntityTypeReturnedClassField = typeof(EntityType).GetField("returnedClass", BindingFlags.Instance | BindingFlags.NonPublic);
+
         public static void UpdateSchema(Configuration pConfiguration, DynamixClass[] pClasses)
         {
             //first all classes and then all properties, because property could reference dynamix class
@@ -26,9 +30,9 @@ namespace DynamixGenerator.NHibernate
                             AddProperty(pConfiguration, property);
                     }
             }
-            
+
             RunSchemaUpdate(pConfiguration);
-            
+
             foreach (var dynClass in pClasses)
             {
                 if (dynClass.Properties != null)
@@ -111,6 +115,8 @@ namespace DynamixGenerator.NHibernate
 
             var persistentClass = pConfiguration.ClassMappings.First(c => c.EntityName == pDynProperty.DynamixClass.FullName);
 
+            var existing = persistentClass.PropertyIterator.FirstOrDefault(c => c.Name == pDynProperty.Name);
+
             if (pDynProperty.IsReference)
             {
                 PersistentClass referencedPersistentClass = pConfiguration.GetClassMapping(pDynProperty.Type.FullName);
@@ -121,11 +127,11 @@ namespace DynamixGenerator.NHibernate
                 {
                     string roleName = persistentClass.EntityName + "." + pDynProperty.Name;
 
-                    var existing = mapping.IterateCollections.FirstOrDefault(c => c.Role == roleName);
+                    var existingCollection = mapping.IterateCollections.FirstOrDefault(c => c.Role == roleName);
 
-                    if (existing != null)
+                    if (existingCollection != null)
                     {
-                        existing.GenericArguments = new Type[] { pDynProperty.Type };
+                        existingCollection.GenericArguments = new Type[] { pDynProperty.Type };
                         return;
                     }
 
@@ -158,26 +164,40 @@ namespace DynamixGenerator.NHibernate
                 }
                 else
                 {
-                    var columnName = pDynProperty.Name + "Id";
-
-                    if (persistentClass.Table.ColumnIterator.Any(c => c.Name == columnName))
+                    if (existing != null)
+                    {
+                        //Hibernate stores the old reference. We'll update it ;)
+                        EntityTypeReturnedClassField.SetValue(existing.Type, pDynProperty.Type);
                         return;
+                    }
 
-                    var manyToOne = new ManyToOne(referencedPersistentClass.Table)
+                    var manyToOne = new ManyToOne(persistentClass.Table)
                     {
                         PropertyName = pDynProperty.Name,
                         ReferencedEntityName = referencedPersistentClass.EntityName,
+                        FetchMode = global::NHibernate.FetchMode.Join,
                         IsLazy = false,
+                        ReferencedPropertyName = string.IsNullOrWhiteSpace(pDynProperty.ReferencedPropertyName) ? null : pDynProperty.ReferencedPropertyName,
                     };
 
-                    var propColumn = new Column(columnName)
+                    if (pDynProperty.Formula == null)
                     {
-                        IsUnique = pDynProperty.IsUnique
-                    };
-                    manyToOne.AddColumn(propColumn);
+                        var propColumn = new Column(pDynProperty.Name + "Id")
+                        {
+                            IsUnique = pDynProperty.IsUnique,
+                        };
+                        manyToOne.AddColumn(propColumn);
 
-                    persistentClass.Table.AddColumn(propColumn);
-                    persistentClass.Table.CreateForeignKey(null, new[] { propColumn }, referencedPersistentClass.EntityName);
+                        persistentClass.Table.AddColumn(propColumn);
+                        persistentClass.Table.CreateForeignKey(null, new[] { propColumn }, referencedPersistentClass.EntityName);
+                    }
+                    else
+                    {
+                        manyToOne.AddFormula(new Formula()
+                        {
+                            FormulaString = pDynProperty.Formula
+                        });
+                    }
 
                     relation = manyToOne;
                 }
@@ -192,24 +212,40 @@ namespace DynamixGenerator.NHibernate
             }
             else
             {
-                if (persistentClass.Table.ColumnIterator.Any(c => c.Name == pDynProperty.Name))
+                if (existing != null)
+                {
+                    if (pDynProperty.Formula == null)
+                    {
+                        var sval = (SimpleValue)existing.Value;
+                        //TODO Update Formula
+                    }
                     return;
+                }
 
-                Column column = new Column(pDynProperty.Name);
-
-                table.AddColumn(column);
-
-                var valueName = new SimpleValue(table)
+                var value = new SimpleValue(table)
                 {
                     TypeName = pDynProperty.Type.AssemblyQualifiedName,
                 };
 
-                valueName.AddColumn(column);
+                if (pDynProperty.Formula == null)
+                {
+                    var column = new Column(pDynProperty.Name);
+                    table.AddColumn(column);
+
+                    value.AddColumn(column);
+                }
+                else
+                {
+                    value.AddFormula(new Formula()
+                    {
+                        FormulaString = pDynProperty.Formula
+                    });
+                }
 
                 persistentClass.AddProperty(new Property()
                 {
                     Name = pDynProperty.Name,
-                    Value = valueName,
+                    Value = value,
                 });
             }
         }

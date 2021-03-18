@@ -46,6 +46,10 @@ namespace DynamixGenerator
 
         public virtual bool IsUnique { get; set; }
 
+        public virtual string Formula { get; set; }
+
+        public virtual string ReferencedPropertyName { get; set; }
+
         public virtual string GetPropertyTypeName()
         {
             return Type?.FullName ?? TypeName;
