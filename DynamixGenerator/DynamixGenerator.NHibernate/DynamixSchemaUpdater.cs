@@ -136,11 +136,8 @@ namespace DynamixGenerator.NHibernate
 
                     targetClass = subclass;
 
-                    var keycolumns = new[] { columnId };
-
-                    var foreignKey = table.CreateForeignKey("fk", keycolumns, subclass.EntityName);
+                    var foreignKey = table.CreateForeignKey(null, new[] { columnId }, subclass.EntityName);
                     foreignKey.ReferencedTable = superClass.Table;
-
                 }
 
                 mapping.AddClass(targetClass);
