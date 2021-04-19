@@ -4,8 +4,11 @@ using NHibernate.Tool.hbm2ddl;
 using NHibernate.Type;
 using NHibernate.Util;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DynamixGenerator.NHibernate
 {
@@ -59,7 +62,7 @@ namespace DynamixGenerator.NHibernate
                     IsNullable = false
                 };
 
-                Table table = mapping.AddTable(null, null, "_" + pDynClass.Name, null, false, "all"); //isabstract is false ?
+                Table table = mapping.AddTable(null, null, "_" + pDynClass.Name, null, false, "all");
 
                 table.AddColumn(columnId);
 
@@ -79,7 +82,15 @@ namespace DynamixGenerator.NHibernate
                     Value = valueId,
                 };
 
-                var targetClass = new RootClass()
+                PrimaryKey pk = new PrimaryKey()
+                {
+                    Name = "Id",
+                    Table = table,
+                };
+                pk.AddColumn(columnId);
+                table.PrimaryKey = pk;
+
+                PersistentClass targetClass = new RootClass()
                 {
                     EntityName = pDynClass.FullName,
                     DiscriminatorValue = pDynClass.FullName,
@@ -91,13 +102,46 @@ namespace DynamixGenerator.NHibernate
 
                 ((ITableOwner)targetClass).Table = table;
 
-                PrimaryKey pk = new PrimaryKey()
+
+                if (!string.IsNullOrWhiteSpace(pDynClass.InheritsFrom))
                 {
-                    Name = "Id",
-                    Table = table,
-                };
-                pk.AddColumn(columnId);
-                table.PrimaryKey = pk;
+                    var superClass = mapping.GetClass(pDynClass.InheritsFrom);
+
+                    var subclass = new SingleTableSubclass(superClass)
+                    {
+                        ClassName = pDynClass.GetTypeReference().AssemblyQualifiedName,
+                        ProxyInterfaceName = pDynClass.GetTypeReference().AssemblyQualifiedName,
+                        DiscriminatorValue = pDynClass.FullName,
+                        EntityName = pDynClass.FullName,
+                        IsLazy = true,
+
+                    };
+
+                    superClass.AddSubclass(subclass);
+
+                    var dependantKey = new DependantValue(subclass.Table, subclass.Identifier);
+                    foreach (Column column in subclass.Key.ColumnIterator)
+                    {
+                        dependantKey.AddColumn(column);
+                    }
+
+                    Join join = new Join()
+                    {
+                        PersistentClass = subclass,
+                        Key = dependantKey,
+                        Table = table
+                    };
+
+                    subclass.AddJoin(join);
+
+                    targetClass = subclass;
+
+                    var keycolumns = new[] { columnId };
+
+                    var foreignKey = table.CreateForeignKey("fk", keycolumns, subclass.EntityName);
+                    foreignKey.ReferencedTable = superClass.Table;
+
+                }
 
                 mapping.AddClass(targetClass);
             }
@@ -111,9 +155,9 @@ namespace DynamixGenerator.NHibernate
         {
             var mapping = pConfiguration.CreateMappings();
 
-            var table = mapping.IterateTables.First(t => t.Name == "_" + pDynProperty.DynamixClass.Name);
+            var table = mapping.IterateTables.Single(t => t.Name == "_" + pDynProperty.DynamixClass.Name);
 
-            var persistentClass = pConfiguration.ClassMappings.First(c => c.EntityName == pDynProperty.DynamixClass.FullName);
+            var persistentClass = pConfiguration.ClassMappings.Single(c => c.EntityName == pDynProperty.DynamixClass.FullName);
 
             var existing = persistentClass.PropertyIterator.FirstOrDefault(c => c.Name == pDynProperty.Name);
 
@@ -214,10 +258,14 @@ namespace DynamixGenerator.NHibernate
             {
                 if (existing != null)
                 {
-                    if (pDynProperty.Formula == null)
+                    //Update will not work if adding formula later
+                    var sval = (SimpleValue)existing.Value;
+                    sval.TypeName = pDynProperty.Type.AssemblyQualifiedName;
+
+                    if (!string.IsNullOrWhiteSpace(pDynProperty.Formula) && sval.HasFormula)
                     {
-                        var sval = (SimpleValue)existing.Value;
-                        //TODO Update Formula
+                        var formula = sval.ColumnIterator.First() as Formula;
+                        formula.FormulaString = pDynProperty.Formula;
                     }
                     return;
                 }
@@ -242,11 +290,20 @@ namespace DynamixGenerator.NHibernate
                     });
                 }
 
-                persistentClass.AddProperty(new Property()
+                Property property = new Property()
                 {
                     Name = pDynProperty.Name,
                     Value = value,
-                });
+                };
+
+                if (persistentClass is SingleTableSubclass subClass)
+                {
+                    var join = subClass.JoinIterator.First();
+                    join.AddProperty(property);
+                    return;
+                }
+
+                persistentClass.AddProperty(property);
             }
         }
 

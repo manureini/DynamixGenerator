@@ -22,7 +22,7 @@ namespace DynamixGenerator
                 mType = Type.GetType(TypeName);
 
                 //Dynamix Types can't be found, because they don't exists, yet
-                if (mType == null && !TypeName.StartsWith(DynamixClass.Namespace))
+                if (mType == null && DynamixClass != null && !TypeName.StartsWith(DynamixClass.Namespace))
                 {
                     throw new Exception($"Type with name {TypeName} not found!");
                 }
