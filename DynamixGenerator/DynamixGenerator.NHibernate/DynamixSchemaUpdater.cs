@@ -219,6 +219,7 @@ namespace DynamixGenerator.NHibernate
                         FetchMode = global::NHibernate.FetchMode.Join,
                         IsLazy = false,
                         ReferencedPropertyName = string.IsNullOrWhiteSpace(pDynProperty.ReferencedPropertyName) ? null : pDynProperty.ReferencedPropertyName,
+                        IsIgnoreNotFound = true
                     };
 
                     if (pDynProperty.Formula == null)

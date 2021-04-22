@@ -24,7 +24,11 @@ namespace DynamixGenerator
                 }
 
                 sb.AppendLine("{"); //class
-                sb.AppendLine($@"public virtual global::System.Guid Id {{ get; set; }}");
+
+                if (string.IsNullOrEmpty(dynClass.InheritsFrom))
+                {
+                    sb.AppendLine("public virtual global::System.Guid Id { get; set; }");
+                }
 
                 foreach (var property in dynClass.Properties)
                 {
