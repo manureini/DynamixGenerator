@@ -114,7 +114,6 @@ namespace DynamixGenerator.NHibernate
                         DiscriminatorValue = pDynClass.FullName,
                         EntityName = pDynClass.FullName,
                         IsLazy = true,
-
                     };
 
                     superClass.AddSubclass(subclass);
@@ -145,6 +144,7 @@ namespace DynamixGenerator.NHibernate
             else
             {
                 existing.ClassName = pDynClass.GetTypeReference().AssemblyQualifiedName;
+                existing.ProxyInterfaceName = pDynClass.GetTypeReference().AssemblyQualifiedName;
             }
         }
 
