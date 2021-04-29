@@ -19,7 +19,7 @@ namespace DynamixGenerator
                 if (mType != null)
                     return mType;
 
-                mType = Type.GetType(TypeName);
+                mType = TypeHelper.FindType(TypeName);
 
                 //Dynamix Types can't be found, because they don't exists, yet
                 if (mType == null && DynamixClass != null && !TypeName.StartsWith(DynamixClass.Namespace))
@@ -32,7 +32,7 @@ namespace DynamixGenerator
             set
             {
                 mType = value;
-                TypeName = mType.AssemblyQualifiedName;
+                TypeName = mType.FullName;
             }
         }
 
@@ -49,6 +49,8 @@ namespace DynamixGenerator
         public virtual string Formula { get; set; }
 
         public virtual string ReferencedPropertyName { get; set; }
+
+        public virtual string AttributeCode { get; set; }
 
         public virtual string GetPropertyTypeName()
         {
