@@ -32,6 +32,11 @@ namespace DynamixGenerator
 
                 foreach (var property in dynClass.Properties)
                 {
+                    if (!string.IsNullOrWhiteSpace(property.AttributeCode))
+                    {
+                        sb.AppendLine(property.AttributeCode);
+                    }
+
                     string typename = property.GetPropertyTypeName();
 
                     if (property.IsOneToMany)

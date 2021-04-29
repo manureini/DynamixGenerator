@@ -19,6 +19,7 @@
     <property name="IsUnique" />
     <property name="Formula" />
     <property name="ReferencedPropertyName" />
+    <property name="AttributeCode" />
 
     <many-to-one name="DynamixClass" class="DynamixClass" column="DynamixClassId" unique-key="PropertyClassUnique" />
 
