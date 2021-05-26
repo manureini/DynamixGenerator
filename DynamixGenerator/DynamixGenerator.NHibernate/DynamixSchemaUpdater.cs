@@ -24,20 +24,26 @@ namespace DynamixGenerator.NHibernate
             mSkipUselessTables = pSkipUselessTables;
         }
 
-
         public void UpdateSchema(Configuration pConfiguration, DynamixClass[] pClasses)
         {
+            foreach (var dynClass in pClasses)
+            {
+                var existing = pConfiguration.GetClassMapping(dynClass.FullName);
+                if (existing != null)
+                {
+                    RemoveFromConfiguration(pConfiguration, existing);
+                }
+            }
+
             var mapping = pConfiguration.CreateMappings();
 
-            var classes = pClasses;
-
             //first all classes and then all properties, because property could reference dynamix class
-            foreach (var dynClass in classes)
+            foreach (var dynClass in pClasses)
             {
                 AddClass(mapping, dynClass);
             }
 
-            foreach (var dynClass in classes)
+            foreach (var dynClass in pClasses)
             {
                 if (dynClass.Properties != null)
                     foreach (var property in dynClass.Properties)
@@ -49,7 +55,7 @@ namespace DynamixGenerator.NHibernate
 
             RunSchemaUpdate(pConfiguration);
 
-            foreach (var dynClass in classes)
+            foreach (var dynClass in pClasses)
             {
                 if (dynClass.Properties != null)
                     foreach (var property in dynClass.Properties)
@@ -61,7 +67,48 @@ namespace DynamixGenerator.NHibernate
 
             RunSchemaUpdate(pConfiguration);
 
-            MigrateIdsFromBaseToSubTables(pConfiguration, mapping, classes);
+            MigrateIdsFromBaseToSubTables(pConfiguration, mapping, pClasses);
+        }
+
+        private void RemoveFromConfiguration(Configuration pConfiguration, PersistentClass pPersistentClass)
+        {
+            var classes = (IDictionary<string, PersistentClass>)typeof(Configuration).GetField("classes", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(pConfiguration);
+            classes.Remove(pPersistentClass.EntityName);
+
+            RemoveTable(pConfiguration, pPersistentClass.Table);
+
+            foreach (var join in pPersistentClass.JoinClosureIterator)
+            {
+                RemoveTable(pConfiguration, join.Table);
+            }
+
+            pConfiguration.Imports.Remove(pPersistentClass.EntityName);
+            pConfiguration.Imports.Remove(pPersistentClass.ClassName);
+
+            var propertyReferences = (IList<Mappings.PropertyReference>)typeof(Configuration).GetField("propertyReferences", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(pConfiguration);
+
+            foreach (var propRef in propertyReferences.ToArray())
+            {
+                if (propRef.referencedClass == pPersistentClass.ClassName)
+                    propertyReferences.Remove(propRef);
+            }
+        }
+
+        private void RemoveTable(Configuration pConfiguration, Table pTable)
+        {
+            var tables = (IDictionary<string, Table>)typeof(Configuration).GetField("tables", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(pConfiguration);
+
+            var kvtable = tables.FirstOrDefault(t => t.Value == pTable);
+            if (kvtable.Key != null)
+                tables.Remove(kvtable.Key);
+
+            var collections = (IDictionary<string, Collection>)typeof(Configuration).GetField("collections", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(pConfiguration);
+
+            foreach (var key in collections.Where(t => t.Value.Table == pTable).Select(v => v.Key).ToArray())
+            {
+                if (key != null)
+                    collections.Remove(key);
+            }
         }
 
         private void MigrateIdsFromBaseToSubTables(Configuration pConfiguration, Mappings mapping, DynamixClass[] classes)
@@ -100,112 +147,102 @@ namespace DynamixGenerator.NHibernate
 
         private void AddClass(Mappings pMappings, DynamixClass pDynClass)
         {
-            var existing = pMappings.GetClass(pDynClass.FullName);
-
-            if (existing == null)
+            Column columnId = new Column("Id")
             {
-                Column columnId = new Column("Id")
-                {
-                    IsNullable = false
-                };
+                IsNullable = false
+            };
 
-                var valueId = new SimpleValue()
-                {
-                    IdentifierGeneratorStrategy = "assigned",
-                    TypeName = "guid",
-                    NullValue = "undefined"
-                };
-                valueId.AddColumn(columnId);
+            var valueId = new SimpleValue()
+            {
+                IdentifierGeneratorStrategy = "assigned",
+                TypeName = "guid",
+                NullValue = "undefined"
+            };
+            valueId.AddColumn(columnId);
 
-                var idProperty = new Property(valueId)
+            var idProperty = new Property(valueId)
+            {
+                Name = "Id",
+                Value = valueId,
+            };
+
+            PersistentClass targetClass = new RootClass()
+            {
+                EntityName = pDynClass.FullName,
+                DiscriminatorValue = pDynClass.FullName,
+                IdentifierProperty = idProperty,
+                Identifier = valueId,
+                IsMutable = true,
+                ClassName = pDynClass.GetTypeReference().AssemblyQualifiedName
+            };
+
+            bool subTable = string.IsNullOrWhiteSpace(pDynClass.InheritsFrom) || pDynClass.Properties.Any();
+            Table table = null;
+
+            if (subTable)
+            {
+                table = pMappings.AddTable(null, null, "_" + pDynClass.Name, null, false, "all");
+                table.AddColumn(columnId);
+
+                PrimaryKey pk = new PrimaryKey()
                 {
                     Name = "Id",
-                    Value = valueId,
+                    Table = table,
                 };
+                pk.AddColumn(columnId);
 
-                PersistentClass targetClass = new RootClass()
+                table.PrimaryKey = pk;
+
+                valueId.Table = table;
+
+                ((ITableOwner)targetClass).Table = table;
+            }
+
+            if (!string.IsNullOrWhiteSpace(pDynClass.InheritsFrom))
+            {
+                var superClass = pMappings.GetClass(pDynClass.InheritsFrom);
+
+                var subclass = new SingleTableSubclass(superClass)
                 {
-                    EntityName = pDynClass.FullName,
+                    ClassName = pDynClass.GetTypeReference().AssemblyQualifiedName,
+                    ProxyInterfaceName = pDynClass.GetTypeReference().AssemblyQualifiedName,
                     DiscriminatorValue = pDynClass.FullName,
-                    IdentifierProperty = idProperty,
-                    Identifier = valueId,
-                    IsMutable = true,
-                    ClassName = pDynClass.GetTypeReference().AssemblyQualifiedName
+                    EntityName = pDynClass.FullName,
+                    IsLazy = true,
                 };
 
-                bool subTable = string.IsNullOrWhiteSpace(pDynClass.InheritsFrom) || pDynClass.Properties.Any();
-                Table table = null;
+                superClass.AddSubclass(subclass);
+
+                var dependantKey = new DependantValue(subclass.Table, subclass.Identifier);
+                foreach (Column column in subclass.Key.ColumnIterator)
+                {
+                    dependantKey.AddColumn(column);
+                }
 
                 if (subTable)
                 {
-                    table = pMappings.AddTable(null, null, "_" + pDynClass.Name, null, false, "all");
-                    table.AddColumn(columnId);
-
-                    PrimaryKey pk = new PrimaryKey()
+                    Join join = new Join()
                     {
-                        Name = "Id",
-                        Table = table,
+                        PersistentClass = subclass,
+                        Key = dependantKey,
+                        Table = table
                     };
-                    pk.AddColumn(columnId);
 
-                    table.PrimaryKey = pk;
+                    subclass.AddJoin(join);
 
-                    valueId.Table = table;
-
-                    ((ITableOwner)targetClass).Table = table;
+                    var foreignKey = table.CreateForeignKey(null, new[] { columnId }, subclass.EntityName);
+                    foreignKey.ReferencedTable = superClass.Table;
                 }
-
-                if (!string.IsNullOrWhiteSpace(pDynClass.InheritsFrom))
+                else
                 {
-                    var superClass = pMappings.GetClass(pDynClass.InheritsFrom);
-
-                    var subclass = new SingleTableSubclass(superClass)
-                    {
-                        ClassName = pDynClass.GetTypeReference().AssemblyQualifiedName,
-                        ProxyInterfaceName = pDynClass.GetTypeReference().AssemblyQualifiedName,
-                        DiscriminatorValue = pDynClass.FullName,
-                        EntityName = pDynClass.FullName,
-                        IsLazy = true,
-                    };
-
-                    superClass.AddSubclass(subclass);
-
-                    var dependantKey = new DependantValue(subclass.Table, subclass.Identifier);
-                    foreach (Column column in subclass.Key.ColumnIterator)
-                    {
-                        dependantKey.AddColumn(column);
-                    }
-
-                    if (subTable)
-                    {
-                        Join join = new Join()
-                        {
-                            PersistentClass = subclass,
-                            Key = dependantKey,
-                            Table = table
-                        };
-
-                        subclass.AddJoin(join);
-
-                        var foreignKey = table.CreateForeignKey(null, new[] { columnId }, subclass.EntityName);
-                        foreignKey.ReferencedTable = superClass.Table;
-                    }
-                    else
-                    {
-                        valueId.Table = superClass.Table;
-                        ((ITableOwner)targetClass).Table = superClass.Table;
-                    }
-
-                    targetClass = subclass;
+                    valueId.Table = superClass.Table;
+                    ((ITableOwner)targetClass).Table = superClass.Table;
                 }
 
-                pMappings.AddClass(targetClass);
+                targetClass = subclass;
             }
-            else
-            {
-                existing.ClassName = pDynClass.GetTypeReference().AssemblyQualifiedName;
-                existing.ProxyInterfaceName = pDynClass.GetTypeReference().AssemblyQualifiedName;
-            }
+
+            pMappings.AddClass(targetClass);
         }
 
         private void AddProperty(Mappings pMapping, DynamixProperty pDynProperty)
@@ -213,8 +250,6 @@ namespace DynamixGenerator.NHibernate
             var persistentClass = pMapping.LocatePersistentClassByEntityName(pDynProperty.DynamixClass.FullName);
 
             var table = pMapping.IterateTables.SingleOrDefault(t => t.Name == "_" + pDynProperty.DynamixClass.Name);
-
-            var existing = persistentClass.PropertyIterator.FirstOrDefault(c => c.Name == pDynProperty.Name);
 
             if (pDynProperty.IsReference)
             {
@@ -263,13 +298,6 @@ namespace DynamixGenerator.NHibernate
                 }
                 else
                 {
-                    if (existing != null)
-                    {
-                        //Hibernate stores the old reference. We'll update it ;)
-                        EntityTypeReturnedClassField.SetValue(existing.Type, pDynProperty.Type);
-                        return;
-                    }
-
                     var manyToOne = new ManyToOne(persistentClass.Table)
                     {
                         PropertyName = pDynProperty.Name,
@@ -312,20 +340,6 @@ namespace DynamixGenerator.NHibernate
             }
             else
             {
-                if (existing != null)
-                {
-                    //Update will not work if adding formula later
-                    var sval = (SimpleValue)existing.Value;
-                    sval.TypeName = pDynProperty.Type.AssemblyQualifiedName;
-
-                    if (!string.IsNullOrWhiteSpace(pDynProperty.Formula) && sval.HasFormula)
-                    {
-                        var formula = sval.ColumnIterator.First() as Formula;
-                        formula.FormulaString = pDynProperty.Formula;
-                    }
-                    return;
-                }
-
                 var value = new SimpleValue(table)
                 {
                     TypeName = pDynProperty.Type.AssemblyQualifiedName,
