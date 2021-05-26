@@ -1,4 +1,5 @@
-﻿using NHibernate.Cfg;
+﻿using NHibernate;
+using NHibernate.Cfg;
 using NHibernate.Mapping;
 using NHibernate.Tool.hbm2ddl;
 using NHibernate.Type;
@@ -60,8 +61,41 @@ namespace DynamixGenerator.NHibernate
 
             RunSchemaUpdate(pConfiguration);
 
-            // migrate if basetable has id, but subtable doesn't have ids from basetable
+            MigrateIdsFromBaseToSubTables(pConfiguration, mapping, classes);
+        }
 
+        private void MigrateIdsFromBaseToSubTables(Configuration pConfiguration, Mappings mapping, DynamixClass[] classes)
+        {
+            using var sf = pConfiguration.BuildSessionFactory();
+            using var session = sf.OpenSession();
+
+            foreach (var dynClass in classes)
+            {
+                var persistentClass = mapping.LocatePersistentClassByEntityName(dynClass.FullName);
+
+                if (persistentClass is SingleTableSubclass subClass && subClass.JoinIterator.Any())
+                {
+                    var table = mapping.IterateTables.Single(t => t.Name == "_" + dynClass.Name).GetQuotedName();
+
+                    if (persistentClass.Discriminator.ColumnSpan != 1)
+                        throw new NotSupportedException("Multi Discriminator Columns not supported!");
+
+                    var discriminatorColumn = persistentClass.Discriminator.ColumnIterator.First().Text;
+
+                    var query =
+                        @$"DO $$ BEGIN
+                            IF NOT EXISTS(SELECT id FROM {table} LIMIT 1) THEN
+                                INSERT INTO {table} 
+                                    SELECT id FROM {persistentClass.Table.GetQuotedName()} WHERE {discriminatorColumn} = '{persistentClass.DiscriminatorValue}';
+                            END IF;
+                        END $$;
+                        ";
+
+                    session.CreateSQLQuery(query).ExecuteUpdate();
+                }
+            }
+
+            session.Flush();
         }
 
         private void AddClass(Mappings pMappings, DynamixClass pDynClass)
