@@ -9,6 +9,8 @@ namespace DynamixGenerator
         {
             StringBuilder sb = new StringBuilder();
 
+            sb.AppendLine("using System.ComponentModel.DataAnnotations;");
+
             foreach (var dynClass in pDynamixClasses)
             {
                 sb.AppendLine($"namespace {dynClass.Namespace}");

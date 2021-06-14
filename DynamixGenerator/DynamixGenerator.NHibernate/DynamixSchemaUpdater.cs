@@ -298,11 +298,11 @@ namespace DynamixGenerator.NHibernate
                 }
                 else
                 {
-                    var manyToOne = new ManyToOne(persistentClass.Table)
+                    var manyToOne = new ManyToOne(table)
                     {
                         PropertyName = pDynProperty.Name,
                         ReferencedEntityName = referencedPersistentClass.EntityName,
-                        FetchMode = global::NHibernate.FetchMode.Join,
+                        FetchMode = FetchMode.Join,
                         IsLazy = false,
                         ReferencedPropertyName = string.IsNullOrWhiteSpace(pDynProperty.ReferencedPropertyName) ? null : pDynProperty.ReferencedPropertyName,
                         IsIgnoreNotFound = true
@@ -316,8 +316,8 @@ namespace DynamixGenerator.NHibernate
                         };
                         manyToOne.AddColumn(propColumn);
 
-                        persistentClass.Table.AddColumn(propColumn);
-                        persistentClass.Table.CreateForeignKey(null, new[] { propColumn }, referencedPersistentClass.EntityName);
+                        table.AddColumn(propColumn);
+                        table.CreateForeignKey(null, new[] { propColumn }, referencedPersistentClass.EntityName);
                     }
                     else
                     {
@@ -335,6 +335,18 @@ namespace DynamixGenerator.NHibernate
                     Value = relation,
                     Name = pDynProperty.Name,
                 };
+
+                if (persistentClass is SingleTableSubclass subClass)
+                {
+                    if (subClass.JoinIterator.Any())
+                    {
+                        var join = subClass.JoinIterator.First();
+                        join.AddProperty(prop);
+                        return;
+                    }
+
+                    throw new InvalidOperationException("Not possible code reached");
+                }
 
                 persistentClass.AddProperty(prop);
             }
