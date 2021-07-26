@@ -15,15 +15,6 @@ namespace DynamixGenerator.NHibernate
 {
     public class DynamixSchemaUpdater
     {
-        private static readonly FieldInfo EntityTypeReturnedClassField = typeof(EntityType).GetField("returnedClass", BindingFlags.Instance | BindingFlags.NonPublic);
-
-        private bool mSkipUselessTables;
-
-        public DynamixSchemaUpdater(bool pSkipUselessTables)
-        {
-            mSkipUselessTables = pSkipUselessTables;
-        }
-
         public void UpdateSchema(Configuration pConfiguration, DynamixClass[] pClasses)
         {
             foreach (var dynClass in pClasses)
