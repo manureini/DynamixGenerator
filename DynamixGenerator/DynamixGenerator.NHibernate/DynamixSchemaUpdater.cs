@@ -1,5 +1,6 @@
 ﻿using NHibernate;
 using NHibernate.Cfg;
+using NHibernate.Dialect;
 using NHibernate.Mapping;
 using NHibernate.Tool.hbm2ddl;
 using NHibernate.Type;
@@ -15,23 +16,47 @@ namespace DynamixGenerator.NHibernate
 {
     public class DynamixSchemaUpdater
     {
-        public void UpdateSchema(Configuration pConfiguration, DynamixClass[] pClasses)
+        protected HashSet<string> mAlreadyMergedEntities = new();
+
+        protected Dictionary<string, string> mLastCreationSqls = new();
+
+        public Configuration UpdateSchema(Func<Configuration> pConfigurationProvider, DynamixClass[] pClasses)
         {
+            var cfg = pConfigurationProvider();
+            var updateCfg = pConfigurationProvider();
+            var updateCfgRef = pConfigurationProvider();
+
             foreach (var dynClass in pClasses)
             {
-                var existing = pConfiguration.GetClassMapping(dynClass.FullName);
+                var existing = cfg.GetClassMapping(dynClass.FullName);
                 if (existing != null)
                 {
-                    RemoveFromConfiguration(pConfiguration, existing);
+                    RemoveFromConfiguration(cfg, existing);
+                }
+
+                var existing2 = updateCfg.GetClassMapping(dynClass.FullName);
+                if (existing2 != null)
+                {
+                    RemoveFromConfiguration(updateCfg, existing2);
+                }
+
+                var existing3 = updateCfgRef.GetClassMapping(dynClass.FullName);
+                if (existing3 != null)
+                {
+                    RemoveFromConfiguration(updateCfgRef, existing3);
                 }
             }
 
-            var mapping = pConfiguration.CreateMappings();
+            var mappingCfg = cfg.CreateMappings();
+            var mappingUpdate = updateCfg.CreateMappings();
+            var mappingUpdateRef = updateCfgRef.CreateMappings();
 
             //first all classes and then all properties, because property could reference dynamix class
             foreach (var dynClass in pClasses)
             {
-                AddClass(mapping, dynClass);
+                AddClass(mappingCfg, dynClass);
+                AddClass(mappingUpdate, dynClass);
+                AddClass(mappingUpdateRef, dynClass);
             }
 
             foreach (var dynClass in pClasses)
@@ -40,11 +65,17 @@ namespace DynamixGenerator.NHibernate
                     foreach (var property in dynClass.Properties)
                     {
                         if (!property.IsReference)
-                            AddProperty(mapping, property);
+                        {
+                            AddProperty(mappingCfg, property);
+                            AddProperty(mappingUpdate, property);
+                            AddProperty(mappingUpdateRef, property);
+                        }
                     }
             }
 
-            RunSchemaUpdate(pConfiguration);
+            RunSchemaUpdate(updateCfg);
+            updateCfg = null;
+            mappingUpdate = null;
 
             foreach (var dynClass in pClasses)
             {
@@ -52,13 +83,20 @@ namespace DynamixGenerator.NHibernate
                     foreach (var property in dynClass.Properties)
                     {
                         if (property.IsReference)
-                            AddProperty(mapping, property);
+                        {
+                            AddProperty(mappingCfg, property);
+                            AddProperty(mappingUpdateRef, property);
+                        }
                     }
             }
 
-            RunSchemaUpdate(pConfiguration);
+            RunSchemaUpdate(updateCfgRef);
+            updateCfgRef = null;
+            mappingUpdateRef = null;
 
-            MigrateIdsFromBaseToSubTables(pConfiguration, mapping, pClasses);
+            MigrateIdsFromBaseToSubTables(cfg, mappingCfg, pClasses);
+
+            return cfg;
         }
 
         private void RemoveFromConfiguration(Configuration pConfiguration, PersistentClass pPersistentClass)
@@ -113,6 +151,11 @@ namespace DynamixGenerator.NHibernate
 
                 if (persistentClass is SingleTableSubclass subClass && subClass.JoinIterator.Any())
                 {
+                    if (mAlreadyMergedEntities.Contains(persistentClass.EntityName))
+                        continue;
+
+                    mAlreadyMergedEntities.Add(persistentClass.EntityName);
+
                     var table = mapping.IterateTables.Single(t => t.Name == "_" + dynClass.Name).GetQuotedName();
 
                     if (persistentClass.Discriminator.ColumnSpan != 1)
@@ -138,6 +181,11 @@ namespace DynamixGenerator.NHibernate
 
         private void AddClass(Mappings pMappings, DynamixClass pDynClass)
         {
+            if (pDynClass.FullName.Contains(" "))
+            {
+                throw new NotSupportedException($"{nameof(pDynClass.FullName)} contains a space");
+            }
+
             Column columnId = new Column("Id")
             {
                 IsNullable = false
@@ -385,9 +433,30 @@ namespace DynamixGenerator.NHibernate
             }
         }
 
-        private void RunSchemaUpdate(Configuration cfg)
+        private void RunSchemaUpdate(Configuration pConfiguration)
         {
-            var update = new SchemaUpdate(cfg);
+            var dialect = global::NHibernate.Dialect.Dialect.GetDialect(pConfiguration.Properties);
+
+            var changedTables = GetChangedTables(pConfiguration, dialect);
+
+            var tables = (IDictionary<string, Table>)typeof(Configuration).GetField("tables", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(pConfiguration);
+
+            foreach (var tableEntry in tables.ToArray())
+            {
+                if (!tableEntry.Value.IsPhysicalTable)
+                {
+                    continue;
+                }
+
+                var name = tableEntry.Value.GetQualifiedName(dialect);
+
+                if (!changedTables.Contains(name))
+                {
+                    tables.Remove(tableEntry.Key);
+                }
+            }
+
+            var update = new SchemaUpdate(pConfiguration);
             update.Execute(true, true);
 
             if (update.Exceptions.Count > 0)
@@ -399,6 +468,34 @@ namespace DynamixGenerator.NHibernate
 
                 throw update.Exceptions[0];
             }
+        }
+
+        private List<string> GetChangedTables(Configuration pConfiguration, Dialect pDialect)
+        {
+            var ret = new List<string>();
+
+            var sqls = pConfiguration.GenerateSchemaCreationScript(pDialect);
+
+            var grouped = sqls.GroupBy(s => SqlHelper.GetTableName(s)).ToArray();
+            var createsqls = grouped.ToDictionary(v => v.Key, v => string.Join(string.Empty, v));
+
+            foreach (var table in createsqls)
+            {
+                if (!mLastCreationSqls.ContainsKey(table.Key))
+                {
+                    ret.Add(table.Key);
+                    continue;
+                }
+
+                if (table.Value != mLastCreationSqls[table.Key])
+                {
+                    ret.Add(table.Key);
+                }
+            }
+
+            mLastCreationSqls = createsqls;
+
+            return ret;
         }
     }
 }
