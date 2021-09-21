@@ -17,8 +17,9 @@ namespace DynamixGenerator.NHibernate
     public class DynamixSchemaUpdater
     {
         protected HashSet<string> mAlreadyMergedEntities = new();
-
         protected Dictionary<string, string> mLastCreationSqls = new();
+
+        public string TablePrefix { get; set; } = "_";
 
         public Configuration UpdateSchema(Func<Configuration> pConfigurationProvider, DynamixClass[] pClasses)
         {
@@ -156,7 +157,7 @@ namespace DynamixGenerator.NHibernate
 
                     mAlreadyMergedEntities.Add(persistentClass.EntityName);
 
-                    var table = mapping.IterateTables.Single(t => t.Name == "_" + dynClass.Name).GetQuotedName();
+                    var table = mapping.IterateTables.Single(t => t.Name == TablePrefix + dynClass.Name).GetQuotedName();
 
                     if (persistentClass.Discriminator.ColumnSpan != 1)
                         throw new NotSupportedException("Multi Discriminator Columns not supported!");
@@ -220,7 +221,7 @@ namespace DynamixGenerator.NHibernate
 
             if (subTable)
             {
-                table = pMappings.AddTable(null, null, "_" + pDynClass.Name, null, false, "all");
+                table = pMappings.AddTable(null, null, TablePrefix + pDynClass.Name, null, false, "all");
                 table.AddColumn(columnId);
 
                 PrimaryKey pk = new PrimaryKey()
@@ -288,7 +289,7 @@ namespace DynamixGenerator.NHibernate
         {
             var persistentClass = pMapping.LocatePersistentClassByEntityName(pDynProperty.DynamixClass.FullName);
 
-            var table = pMapping.IterateTables.SingleOrDefault(t => t.Name == "_" + pDynProperty.DynamixClass.Name);
+            var table = pMapping.IterateTables.SingleOrDefault(t => t.Name == TablePrefix + pDynProperty.DynamixClass.Name);
 
             if (pDynProperty.IsReference)
             {
@@ -435,7 +436,7 @@ namespace DynamixGenerator.NHibernate
 
         private void RunSchemaUpdate(Configuration pConfiguration)
         {
-            var dialect = global::NHibernate.Dialect.Dialect.GetDialect(pConfiguration.Properties);
+            var dialect = Dialect.GetDialect(pConfiguration.Properties);
 
             var changedTables = GetChangedTables(pConfiguration, dialect);
 
