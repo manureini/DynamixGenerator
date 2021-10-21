@@ -287,6 +287,11 @@ namespace DynamixGenerator.NHibernate
 
         private void AddProperty(Mappings pMapping, DynamixProperty pDynProperty)
         {
+            if(pDynProperty.Name == "Id")
+            {
+                return;
+            }
+
             var persistentClass = pMapping.LocatePersistentClassByEntityName(pDynProperty.DynamixClass.FullName);
 
             var table = pMapping.IterateTables.SingleOrDefault(t => t.Name == TablePrefix + pDynProperty.DynamixClass.Name);

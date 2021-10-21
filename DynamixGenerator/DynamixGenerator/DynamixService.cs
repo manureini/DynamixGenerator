@@ -9,18 +9,22 @@ namespace DynamixGenerator
     {
         public IDynamixStorage Storage { get; protected set; }
 
-        public DynamixClass[] LoadedClasses;
+        public DynamixClass[] LoadedClasses { get; protected set; }
+
+        public string LastAssemblyFullName { get; protected set; }
+
+        public string AssemblyNamePrefix { get; set; } = "DynamicGenerated_";
+
+        public string AssemblyFileName { get; set; }
 
         protected long mGeneratedAssemblyCount = 0;
-
-        public string AssemblyFileName = null;
 
         public DynamixService(IDynamixStorage pStorage)
         {
             Storage = pStorage;
         }
 
-        public Assembly CreateAndLoadAssembly(string pAssemblyName = null)
+        public (Assembly, byte[] bytes) CreateAndLoadAssembly()
         {
             var classes = Storage.GetDynamixClasses();
 
@@ -28,18 +32,15 @@ namespace DynamixGenerator
 
             if (AssemblyFileName == null)
             {
-                if (pAssemblyName == null)
-                {
-                    pAssemblyName = "DynamixGenerated_" + mGeneratedAssemblyCount;
-                    mGeneratedAssemblyCount++;
-                }
+                var assemblyName = AssemblyNamePrefix + mGeneratedAssemblyCount;
+                mGeneratedAssemblyCount++;
 
-                if (AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == pAssemblyName))
-                    throw new Exception($"Assembly with name {pAssemblyName} already loaded");
+                if (AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == assemblyName))
+                    throw new Exception($"Assembly with name {assemblyName} already loaded");
 
-                var code = DynamixGenerator.GenerateCode(pAssemblyName, classes);
+                var code = DynamixGenerator.GenerateCode(assemblyName, classes);
 
-                DynamixCompiler compiler = new DynamixCompiler(pAssemblyName);
+                DynamixCompiler compiler = new DynamixCompiler(assemblyName);
                 assembly = compiler.CompileCode(code);
             }
             else
@@ -68,7 +69,9 @@ namespace DynamixGenerator
             }
 
             LoadedClasses = classes.ToArray();
-            return asm;
+            LastAssemblyFullName = asm.FullName;
+
+            return (asm, assembly);
         }
     }
 }

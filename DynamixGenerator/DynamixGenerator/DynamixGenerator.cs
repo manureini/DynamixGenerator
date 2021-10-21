@@ -20,20 +20,43 @@ namespace DynamixGenerator
                 sb.AppendLine($"[global::DynamixGenerator.DynamixId(\"{dynClass.Id}\")]");
                 sb.AppendLine($"public class {dynClass.Name}");
 
-                if (!string.IsNullOrEmpty(dynClass.InheritsFrom))
+                bool inherits = !string.IsNullOrEmpty(dynClass.InheritsFrom);
+                bool implements = !string.IsNullOrEmpty(dynClass.Implements);
+
+                if (inherits || implements)
                 {
-                    sb.AppendLine($" : {dynClass.InheritsFrom}");
+                    sb.AppendLine($" : ");
+                }
+
+                if (inherits)
+                {
+                    sb.AppendLine(dynClass.InheritsFrom);
+                }
+
+                if (inherits && implements)
+                {
+                    sb.AppendLine(", ");
+                }
+
+                if (implements)
+                {
+                    sb.AppendLine(dynClass.Implements);
                 }
 
                 sb.AppendLine("{"); //class
 
-                if (string.IsNullOrEmpty(dynClass.InheritsFrom))
+                if (!inherits)
                 {
                     sb.AppendLine("public virtual global::System.Guid Id { get; set; }");
                 }
 
                 foreach (var property in dynClass.Properties)
                 {
+                    if (!inherits && property.Name == "Id")
+                    {
+                        continue;
+                    }
+
                     if (!string.IsNullOrWhiteSpace(property.AttributeCode))
                     {
                         sb.AppendLine(property.AttributeCode);

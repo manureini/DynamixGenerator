@@ -21,6 +21,8 @@ namespace DynamixGenerator
 
         public virtual string InheritsFrom { get; set; }
 
+        public virtual string Implements { get; set; }
+
         public virtual ICollection<DynamixProperty> Properties { get; set; }
 
         public virtual Type GetTypeReference()

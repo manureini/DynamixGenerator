@@ -90,6 +90,17 @@ namespace DynamixGenerator
             }
         }
 
+        public void AddAssembly(string pFullName, Stream stream)
+        {
+            mReferenceCache.Remove(pFullName);
+            mReferenceCache.Add(pFullName, MetadataReference.CreateFromStream(stream));
+        }
+
+        public void RemoveAssembly(string pFullName)
+        {
+            mReferenceCache.Remove(pFullName);
+        }
+
         private string FindReferenceAssemblyIfNeeded(string pRuntimeAssembly)
         {
             if (!pRuntimeAssembly.StartsWith(mDotnetRootPath))
@@ -154,17 +165,19 @@ namespace DynamixGenerator
                     return ret;
                 }
 
-                return assemblies.Where(a => a.Location != string.Empty)
-                .Select(a =>
+                return assemblies.Select(a =>
                 {
                     try
                     {
-                        string location = a.Location;
-
-                        if (mReferenceCache.ContainsKey(location))
-                            return mReferenceCache[location];
+                        if (mReferenceCache.ContainsKey(a.FullName))
+                            return mReferenceCache[a.FullName];
 
                         if (mFilter != null && mFilter(a))
+                            return null;
+
+                        string location = a.Location;
+
+                        if (location == string.Empty)
                             return null;
 
                         string referenceAssembly = FindReferenceAssemblyIfNeeded(location);
@@ -174,7 +187,7 @@ namespace DynamixGenerator
 
                         var reference = MetadataReference.CreateFromFile(referenceAssembly);
 
-                        mReferenceCache.Add(location, reference);
+                        mReferenceCache.Add(a.FullName, reference);
 
                         return reference;
                     }
