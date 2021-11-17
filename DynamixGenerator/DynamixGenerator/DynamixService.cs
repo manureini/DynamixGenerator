@@ -30,7 +30,11 @@ namespace DynamixGenerator
 
             byte[] assembly;
 
-            if (AssemblyFileName == null)
+            if (AssemblyFileName != null && File.Exists(AssemblyFileName))
+            {
+                assembly = File.ReadAllBytes(AssemblyFileName);
+            }
+            else
             {
                 var assemblyName = AssemblyNamePrefix + mGeneratedAssemblyCount;
                 mGeneratedAssemblyCount++;
@@ -43,12 +47,8 @@ namespace DynamixGenerator
                 DynamixCompiler compiler = new DynamixCompiler(assemblyName);
                 assembly = compiler.CompileCode(code);
             }
-            else
-            {
-                assembly = File.ReadAllBytes(AssemblyFileName);
-            }
 
-            if (AssemblyFileName != null)
+            if (AssemblyFileName != null && !File.Exists(AssemblyFileName))
                 File.WriteAllBytes(AssemblyFileName, assembly);
 
             Assembly asm = null;
