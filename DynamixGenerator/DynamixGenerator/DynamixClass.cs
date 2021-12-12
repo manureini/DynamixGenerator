@@ -17,7 +17,16 @@ namespace DynamixGenerator
 
         public virtual string Namespace { get; set; } = DYNAMIX_DEFAULT_NAMESPACE_PREFIX;
 
-        public virtual string FullName => Namespace + "." + Name;
+        public virtual string FullName
+        {
+            get
+            {
+                return Namespace + "." + Name;
+            }
+            set
+            {
+            }
+        }
 
         public virtual string InheritsFrom { get; set; }
 

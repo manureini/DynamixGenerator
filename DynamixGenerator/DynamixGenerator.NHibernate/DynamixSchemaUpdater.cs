@@ -52,12 +52,30 @@ namespace DynamixGenerator.NHibernate
             var mappingUpdate = updateCfg.CreateMappings();
             var mappingUpdateRef = updateCfgRef.CreateMappings();
 
-            //first all classes and then all properties, because property could reference dynamix class
-            foreach (var dynClass in pClasses)
+            var addedClasses = new List<string>();
+
+            while (true)
             {
-                AddClass(mappingCfg, dynClass);
-                AddClass(mappingUpdate, dynClass);
-                AddClass(mappingUpdateRef, dynClass);
+                foreach (var dynClass in pClasses)
+                {
+                    if (addedClasses.Contains(dynClass.FullName))
+                        continue;
+
+                    if (!string.IsNullOrEmpty(dynClass.InheritsFrom))
+                    {
+                        if (pClasses.Any(c => c.FullName == dynClass.InheritsFrom) && !addedClasses.Contains(dynClass.InheritsFrom))
+                            continue;
+                    }
+
+                    AddClass(mappingCfg, dynClass);
+                    AddClass(mappingUpdate, dynClass);
+                    AddClass(mappingUpdateRef, dynClass);
+
+                    addedClasses.Add(dynClass.FullName);
+                }
+
+                if (addedClasses.Count == pClasses.Length)
+                    break;
             }
 
             foreach (var dynClass in pClasses)
@@ -287,7 +305,7 @@ namespace DynamixGenerator.NHibernate
 
         private void AddProperty(Mappings pMapping, DynamixProperty pDynProperty)
         {
-            if(pDynProperty.Name == "Id")
+            if (pDynProperty.Name == "Id")
             {
                 return;
             }
