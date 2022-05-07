@@ -7,25 +7,22 @@ namespace DynamixGenerator
 {
     public class DynamixCompiler
     {
-        public string AssemblyName { get; protected set; }
-
         private ReferenceHelper mReferenceHelper;
 
-        public DynamixCompiler(string pAssemblyName)
+        public DynamixCompiler(ReferenceHelper pReferenceHelper)
         {
-            AssemblyName = pAssemblyName;
-            mReferenceHelper = new ReferenceHelper(a => a.FullName.StartsWith(AssemblyName));
+            mReferenceHelper = pReferenceHelper;
         }
 
-        public byte[] CompileCode(string pCode) 
+        public byte[] CompileCode(string pAssemblyName, string pCode)
         {
             var parseOptions = new CSharpParseOptions(kind: SourceCodeKind.Regular, languageVersion: LanguageVersion.Latest);
             var syntaxTree = CSharpSyntaxTree.ParseText(pCode, parseOptions);
 
             var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithPlatform(Platform.AnyCpu);
-            var references = mReferenceHelper.GetMetadataReferences();
+            var references = mReferenceHelper.GetMetadataReferences(a => a.FullName.StartsWith(pAssemblyName));
 
-            var compilation = CSharpCompilation.Create(AssemblyName)
+            var compilation = CSharpCompilation.Create(pAssemblyName)
               .WithOptions(compilationOptions)
               .AddReferences(references)
               .AddSyntaxTrees(syntaxTree);
@@ -34,7 +31,7 @@ namespace DynamixGenerator
 
             var result = compilation.Emit(peStream: msDll);
 
-            if(!result.Success)
+            if (!result.Success)
             {
                 throw new Exception("Generated code did not compile!");
             }

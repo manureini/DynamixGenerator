@@ -18,9 +18,11 @@ namespace DynamixGenerator
         public string AssemblyFileName { get; set; }
 
         protected long mGeneratedAssemblyCount = 0;
+        protected DynamixCompiler mDynamixCompiler;
 
-        public DynamixService(IDynamixStorage pStorage)
+        public DynamixService(IDynamixStorage pStorage, DynamixCompiler pDynamixCompiler)
         {
+            mDynamixCompiler = pDynamixCompiler;
             Storage = pStorage;
         }
 
@@ -43,9 +45,7 @@ namespace DynamixGenerator
                     throw new Exception($"Assembly with name {assemblyName} already loaded");
 
                 var code = DynamixGenerator.GenerateCode(assemblyName, classes);
-
-                DynamixCompiler compiler = new DynamixCompiler(assemblyName);
-                assembly = compiler.CompileCode(code);
+                assembly = mDynamixCompiler.CompileCode(assemblyName, code);
             }
 
             if (AssemblyFileName != null && !File.Exists(AssemblyFileName))
