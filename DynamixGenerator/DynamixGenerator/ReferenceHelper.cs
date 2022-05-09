@@ -42,7 +42,7 @@ namespace DynamixGenerator
 
             mRefRootPath = Path.Combine(mDotnetRootPath, "packs") + Path.DirectorySeparatorChar;
 
-            if (Directory.Exists(mDotnetRootPath))
+            if (Directory.Exists(mRefRootPath))
             {
                 mRefDllFiles = Directory.GetFiles(mRefRootPath, "*.dll", SearchOption.AllDirectories).GroupBy(f => Path.GetFileName(f)).ToDictionary(g => g.Key, x => x.ToArray());
             }
