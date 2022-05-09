@@ -21,7 +21,7 @@ namespace DynamixGenerator
     {
         protected string mDotnetRootPath;
         protected string mRefRootPath;
-        protected Dictionary<string, string[]> mRefDllFiles;
+        protected Dictionary<string, string[]> mRefDllFiles = new();
         protected Dictionary<string, MetadataReference> mReferenceCache = new Dictionary<string, MetadataReference>();
         protected object mLocker = new object();
         protected SemaphoreSlim mLoadLocker = new SemaphoreSlim(1, 1);
@@ -42,7 +42,10 @@ namespace DynamixGenerator
 
             mRefRootPath = Path.Combine(mDotnetRootPath, "packs") + Path.DirectorySeparatorChar;
 
-            mRefDllFiles = Directory.GetFiles(mRefRootPath, "*.dll", SearchOption.AllDirectories).GroupBy(f => Path.GetFileName(f)).ToDictionary(g => g.Key, x => x.ToArray());
+            if (Directory.Exists(mDotnetRootPath))
+            {
+                mRefDllFiles = Directory.GetFiles(mRefRootPath, "*.dll", SearchOption.AllDirectories).GroupBy(f => Path.GetFileName(f)).ToDictionary(g => g.Key, x => x.ToArray());
+            }
         }
 
         public async Task LoadReferencesFromWebAsync(HttpClient pHttpClient, Func<Assembly, bool> pFilter = null)
