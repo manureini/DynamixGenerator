@@ -83,7 +83,7 @@ namespace DynamixGenerator.NHibernate.TestConsole
         {
             Configuration cfg = new Configuration();
             cfg.Configure(@"hibernate.cfg.xml");
-            cfg.AddAssembly(typeof(NHibernateDynamixStorage).Assembly);
+            cfg.AddAssembly(typeof(DynamixGenerator).Assembly);
 
             var sessionFactory = cfg.BuildSessionFactory();
             var session = sessionFactory.OpenSession();
@@ -94,6 +94,7 @@ namespace DynamixGenerator.NHibernate.TestConsole
             FillStorage(session);
             session.Flush();
 
+            /*
             var storage = new NHibernateDynamixStorage(session);
 
             DynamixService service = new DynamixService(storage);
@@ -141,6 +142,7 @@ namespace DynamixGenerator.NHibernate.TestConsole
 
             persons = query.ToArray();
             Console.WriteLine(persons[0].GetType().AssemblyQualifiedName);
+            */
         }
     }
 }

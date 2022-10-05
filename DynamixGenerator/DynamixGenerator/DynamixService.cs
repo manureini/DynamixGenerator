@@ -44,7 +44,7 @@ namespace DynamixGenerator
                 if (AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == assemblyName))
                     throw new Exception($"Assembly with name {assemblyName} already loaded");
 
-                var code = DynamixGenerator.GenerateCode(assemblyName, classes);
+                var code = DynamixGenerator.GenerateCode(classes);
                 assembly = mDynamixCompiler.CompileCode(assemblyName, code);
             }
 

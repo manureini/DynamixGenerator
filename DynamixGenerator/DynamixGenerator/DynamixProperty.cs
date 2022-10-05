@@ -1,7 +1,10 @@
-﻿using System;
+﻿using MShared;
+using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DynamixGenerator
 {
+    [Index(isUnique: true, nameof(DynamixProperty.Name), nameof(DynamixProperty.DynamixClassId))]
     public class DynamixProperty
     {
         private Type mType;
@@ -12,6 +15,7 @@ namespace DynamixGenerator
 
         public virtual string DefaultCode { get; set; }
 
+        [NotMapped]
         public virtual Type Type
         {
             get
@@ -38,6 +42,8 @@ namespace DynamixGenerator
 
         public virtual string TypeName { get; set; }
 
+        public virtual Guid DynamixClassId { get; set; }
+        [ForeignKey(nameof(DynamixClassId))]
         public virtual DynamixClass DynamixClass { get; set; }
 
         public virtual bool IsReference { get; set; }

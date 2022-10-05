@@ -1,5 +1,7 @@
-﻿using System;
+﻿using MShared;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Reflection;
 
@@ -13,6 +15,7 @@ namespace DynamixGenerator
 
         public virtual Guid Id { get; set; }
 
+        [Index(isUnique: true)]
         public virtual string Name { get; set; }
 
         public virtual string Namespace { get; set; } = DYNAMIX_DEFAULT_NAMESPACE_PREFIX;
@@ -32,6 +35,7 @@ namespace DynamixGenerator
 
         public virtual string Implements { get; set; }
 
+        [InverseProperty(nameof(DynamixProperty.DynamixClass))]
         public virtual ICollection<DynamixProperty> Properties { get; set; }
 
         public virtual Type GetTypeReference()

@@ -15,7 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\nhibernate-core\src\NHibernate\NHibernate.csproj" />
+    <PackageReference Include="NHibernate" Version="5.3.13" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\DynamixGenerator\DynamixGenerator.csproj" />
   </ItemGroup>
 

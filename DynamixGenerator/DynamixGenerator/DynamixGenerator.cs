@@ -5,9 +5,9 @@ namespace DynamixGenerator
 {
     public static class DynamixGenerator
     {
-        public static string GenerateCode(string pAssemblyName, IEnumerable<DynamixClass> pDynamixClasses)
+        public static string GenerateCode(IEnumerable<DynamixClass> pDynamixClasses)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             sb.AppendLine("using System.ComponentModel.DataAnnotations;");
 
