@@ -20,6 +20,7 @@ namespace DynamixGenerator
 
         public virtual string Namespace { get; set; } = DYNAMIX_DEFAULT_NAMESPACE_PREFIX;
 
+        [NotMapped]
         public virtual string FullName
         {
             get

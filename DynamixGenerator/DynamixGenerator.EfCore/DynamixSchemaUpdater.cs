@@ -95,16 +95,20 @@ namespace DynamixGenerator.EfCore
 
             foreach (var cmd in sqlcmds)
             {
+                if (cmd.CommandText.Contains("DROP TABLE"))
+                    continue;
+
                 try
                 {
                     cmd.ExecuteNonQuery(conn);
                 }
-                catch (Exception ex) when (ex.Message.Contains("There is already an object named") || ex.Message.Contains("existiert bereits"))
+                catch (Exception ex) when (ex.Message.Contains("There is already an object named") || ex.Message.Contains("existiert bereits") || ex.Message.Contains("existiert nicht"))
                 {
                     // Ignore
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine(e);
                     throw;
                 }
             }
