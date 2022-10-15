@@ -20,7 +20,7 @@ namespace DynamixGenerator.EfCore
 {
     public class DynamixSchemaUpdater
     {
-        public void UpdateSchema(DbContext dbContext)
+        public IModel UpdateSchema(DbContext dbContext)
         {
             IServiceCollection services = new ServiceCollection();
             services.AddDbContextDesignTimeServices(dbContext);
@@ -67,12 +67,20 @@ namespace DynamixGenerator.EfCore
                 throw new Exception($"{error?.Id}: {error?.GetMessage()}");
             }
 
-            var assemblyLoadContext = new AssemblyLoadContext("DbContext", isCollectible: !enableLazyLoading);
+            var infrastructure = dbContext.GetInfrastructure();
+            var migSqlGen = infrastructure.GetService<IMigrationsSqlGenerator>();
+            var modelDiffer = infrastructure.GetService<IMigrationsModelDiffer>();
+            var conn = infrastructure.GetService<IRelationalConnection>();
+            var designTimeModel = infrastructure.GetService<IDesignTimeModel>();
+
+            var model = designTimeModel.Model;
+
+            var assemblyLoadContext = new AssemblyLoadContext("DbContext_generated", isCollectible: !enableLazyLoading);
 
             peStream.Seek(0, SeekOrigin.Begin);
             var assembly = assemblyLoadContext.LoadFromStream(peStream);
 
-            var type = assembly.GetType("TypedDataContext.Context.DataContext");
+            var type = assembly.GetType($"{codeGenOpts.ContextNamespace}.{codeGenOpts.ContextName}");
             _ = type ?? throw new Exception("DataContext type not found");
 
             var constr = type.GetConstructor(Type.EmptyTypes);
@@ -82,14 +90,8 @@ namespace DynamixGenerator.EfCore
 
             var dynamicModel = dynamicContext.GetService<IDesignTimeModel>().Model.GetRelationalModel();
 
-            var infrastructure = dbContext.GetInfrastructure();
-            var migSqlGen = infrastructure.GetService<IMigrationsSqlGenerator>();
-            var modelDiffer = infrastructure.GetService<IMigrationsModelDiffer>();
-            var conn = infrastructure.GetService<IRelationalConnection>();
-            var designTimeModel = infrastructure.GetService<IDesignTimeModel>();
-
-            var diffs = modelDiffer.GetDifferences(dynamicModel, designTimeModel.Model.GetRelationalModel());
-            var sqlcmds = migSqlGen.Generate(diffs, designTimeModel.Model, MigrationsSqlGenerationOptions.Default);
+            var diffs = modelDiffer.GetDifferences(dynamicModel, model.GetRelationalModel());
+            var sqlcmds = migSqlGen.Generate(diffs, model, MigrationsSqlGenerationOptions.Default);
 
             string totalsql = string.Join(Environment.NewLine, sqlcmds.Select(s => s.CommandText));
 
@@ -112,6 +114,13 @@ namespace DynamixGenerator.EfCore
                     throw;
                 }
             }
+
+            if (!enableLazyLoading)
+            {
+                assemblyLoadContext.Unload();
+            }
+
+            return model;
         }
 
         private static List<MetadataReference> CompilationReferences(bool enableLazyLoading)
