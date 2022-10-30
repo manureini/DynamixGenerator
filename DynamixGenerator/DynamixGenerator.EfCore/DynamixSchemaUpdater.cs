@@ -20,13 +20,38 @@ namespace DynamixGenerator.EfCore
 {
     public class DynamixSchemaUpdater
     {
-        public IModel UpdateSchema(DbContext dbContext)
+        public IModel UpdateSchema(dynamic pDbContextFactory, DynamixClass[] pDynamixClasses)
         {
+            var dbContext = (DbContext)pDbContextFactory.CreateDbContext();
+
+            var dynamixContext = (IDynamixDbContext)dbContext;
+
+            dynamixContext.OnModelBuildAction = (modelBuilder) =>
+            {
+                foreach (var dynamix in pDynamixClasses)
+                {
+                    var baseType = dynamix.GetTypeReference().BaseType;
+
+                    var bs = modelBuilder.Entity(baseType);
+
+                    var hasDiscriminator = bs.Metadata.FindAnnotation("DiscriminatorValue") != null;
+
+                    var entity = modelBuilder.Entity(dynamix.GetTypeReference());
+
+                    if (!hasDiscriminator)
+                    {
+                        entity.ToTable("_" + dynamix.Name);
+                    }
+                }
+            };
+
             IServiceCollection services = new ServiceCollection();
             services.AddDbContextDesignTimeServices(dbContext);
             services.AddEntityFrameworkDesignTimeServices();
 
+#pragma warning disable EF1001 // Internal EF Core API usage.
             new NpgsqlDesignTimeServices().ConfigureDesignTimeServices(services);
+#pragma warning restore EF1001 // Internal EF Core API usage.
 
             var serviceProvider = services.BuildServiceProvider();
 
@@ -133,6 +158,7 @@ namespace DynamixGenerator.EfCore
             refs.Add(MetadataReference.CreateFromFile(Assembly.Load("netstandard, Version=2.0.0.0").Location));
             refs.Add(MetadataReference.CreateFromFile(typeof(System.Data.Common.DbConnection).Assembly.Location));
             refs.Add(MetadataReference.CreateFromFile(typeof(System.Linq.Expressions.Expression).Assembly.Location));
+            refs.Add(MetadataReference.CreateFromFile(typeof(Microsoft.EntityFrameworkCore.DeleteBehavior).Assembly.Location));
 
             if (enableLazyLoading)
             {
@@ -145,6 +171,8 @@ namespace DynamixGenerator.EfCore
         private static CSharpCompilation GenerateCode(List<string> sourceFiles, bool enableLazyLoading)
         {
             var options = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
+
+            //  sourceFiles.Insert(0, "using Microsoft.EntityFrameworkCore;");
 
             var parsedSyntaxTrees = sourceFiles.Select(f => SyntaxFactory.ParseSyntaxTree(f, options));
 

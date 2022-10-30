@@ -15,4 +15,8 @@
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.0-rc.1" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\DynamixGenerator\DynamixGenerator.csproj" />
+	</ItemGroup>
+
 </Project>
