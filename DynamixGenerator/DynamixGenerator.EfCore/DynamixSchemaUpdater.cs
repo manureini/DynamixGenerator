@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis;
 using System.Runtime.Loader;
 using System.Reflection;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace DynamixGenerator.EfCore
 {
@@ -40,7 +41,25 @@ namespace DynamixGenerator.EfCore
 
                     if (!hasDiscriminator)
                     {
-                        entity.ToTable("_" + dynamix.Name);
+                        entity = entity.ToTable("_" + dynamix.Name);
+                    }
+
+                    /*
+                    foreach (var property in dynamix.Properties)
+                    {
+                        if (property.Name == "BusinessLicence")
+                            continue;
+
+                        if (property.Name == "Kiab")
+                            continue;
+
+                        entity.Property(property.Name);
+                    }*/
+
+
+                    if (baseType.ToString().Contains("FormValues"))
+                    {
+                        entity = entity.ToTable("_" + dynamix.Name);
                     }
                 }
             };
