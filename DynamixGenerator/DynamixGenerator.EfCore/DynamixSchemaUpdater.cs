@@ -21,11 +21,9 @@ namespace DynamixGenerator.EfCore
 {
     public class DynamixSchemaUpdater
     {
-        public IModel UpdateSchema(dynamic pDbContextFactory, DynamixClass[] pDynamixClasses)
+        public IModel UpdateSchema(DbContext pDbContext, DynamixClass[] pDynamixClasses)
         {
-            var dbContext = (DbContext)pDbContextFactory.CreateDbContext();
-
-            var dynamixContext = (IDynamixDbContext)dbContext;
+            var dynamixContext = (IDynamixDbContext)pDbContext;
 
             dynamixContext.OnModelBuildAction = (modelBuilder) =>
             {
@@ -65,7 +63,7 @@ namespace DynamixGenerator.EfCore
             };
 
             IServiceCollection services = new ServiceCollection();
-            services.AddDbContextDesignTimeServices(dbContext);
+            services.AddDbContextDesignTimeServices(pDbContext);
             services.AddEntityFrameworkDesignTimeServices();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -91,7 +89,7 @@ namespace DynamixGenerator.EfCore
                 SuppressConnectionStringWarning = true
             };
 
-            ScaffoldedModel scaffoldedModelSources = scaffolder.ScaffoldModel(dbContext.Database.GetConnectionString(), dbOpts, modelOpts, codeGenOpts);
+            ScaffoldedModel scaffoldedModelSources = scaffolder.ScaffoldModel(pDbContext.Database.GetConnectionString(), dbOpts, modelOpts, codeGenOpts);
 
             var sourceFiles = new List<string> { scaffoldedModelSources.ContextFile.Code };
             sourceFiles.AddRange(scaffoldedModelSources.AdditionalFiles.Select(f => f.Code));
@@ -111,7 +109,7 @@ namespace DynamixGenerator.EfCore
                 throw new Exception($"{error?.Id}: {error?.GetMessage()}");
             }
 
-            var infrastructure = dbContext.GetInfrastructure();
+            var infrastructure = pDbContext.GetInfrastructure();
             var migSqlGen = infrastructure.GetService<IMigrationsSqlGenerator>();
             var modelDiffer = infrastructure.GetService<IMigrationsModelDiffer>();
             var conn = infrastructure.GetService<IRelationalConnection>();
