@@ -21,7 +21,7 @@ namespace DynamixGenerator.EfCore
 {
     public class DynamixSchemaUpdater
     {
-        public IModel UpdateSchema(DbContext pDbContext, DynamixClass[] pDynamixClasses)
+        public IModel UpdateSchema(DbContext pDbContext, DynamixClass[] pDynamixClasses, Action<string> pLoggerCallback)
         {
             var dynamixContext = (IDynamixDbContext)pDbContext;
 
@@ -141,6 +141,8 @@ namespace DynamixGenerator.EfCore
             {
                 if (cmd.CommandText.Contains("DROP TABLE"))
                     continue;
+
+                pLoggerCallback?.Invoke(cmd.CommandText);
 
                 try
                 {
