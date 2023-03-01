@@ -23,6 +23,8 @@ namespace DynamixGenerator.EfCore
     {
         public IModel UpdateSchema(DbContext pDbContext, DynamixClass[] pDynamixClasses, Action<string> pLoggerCallback)
         {
+            pDbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS _table_for_scaffolder (i integer);");
+
             var dynamixContext = (IDynamixDbContext)pDbContext;
 
             dynamixContext.OnModelBuildAction = (modelBuilder) =>
@@ -93,6 +95,8 @@ namespace DynamixGenerator.EfCore
 
             var sourceFiles = new List<string> { scaffoldedModelSources.ContextFile.Code };
             sourceFiles.AddRange(scaffoldedModelSources.AdditionalFiles.Select(f => f.Code));
+
+            pDbContext.Database.ExecuteSqlRaw("DROP TABLE IF EXISTS _table_for_scaffolder;");
 
             using var peStream = new MemoryStream();
 
