@@ -15,7 +15,6 @@ using Microsoft.CodeAnalysis;
 using System.Runtime.Loader;
 using System.Reflection;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace DynamixGenerator.EfCore
 {
