@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis;
 using System.Runtime.Loader;
 using System.Reflection;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace DynamixGenerator.EfCore
 {
@@ -25,6 +26,8 @@ namespace DynamixGenerator.EfCore
             pDbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS _table_for_scaffolder (i integer);");
 
             var dynamixContext = (IDynamixDbContext)pDbContext;
+
+            bool modelInitialized = false;
 
             dynamixContext.OnModelBuildAction = (modelBuilder) =>
             {
@@ -43,31 +46,52 @@ namespace DynamixGenerator.EfCore
                         entity = entity.ToTable("_" + dynamix.Name);
                     }
 
-                    /*
-                    foreach (var property in dynamix.Properties)
-                    {
-                        if (property.Name == "BusinessLicence")
-                            continue;
-
-                        if (property.Name == "Kiab")
-                            continue;
-
-                        entity.Property(property.Name);
-                    }*/
-
-
                     if (baseType.ToString().Contains("FormValues"))
                     {
                         entity = entity.ToTable("_" + dynamix.Name);
                     }
                 }
+
+                modelInitialized = true;
             };
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+            var contextServices = (IDbContextServices)typeof(DbContext).GetProperty("ContextServices", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(pDbContext, null);
+
+            var dependencies = contextServices.InternalServiceProvider.GetRequiredService<ModelCreationDependencies>();
+
+            var modelSourceDependencies = (ModelSourceDependencies)typeof(ModelSource).GetProperty("Dependencies", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(dependencies.ModelSource, null);
+
+            modelInitialized = false;
+
+            var keyDesignTime = modelSourceDependencies.ModelCacheKeyFactory.Create(pDbContext, true);
+            modelSourceDependencies.MemoryCache.Remove(keyDesignTime);
+
+            var designTimeModel = dependencies.ModelSource.GetModel(pDbContext, dependencies, true);
+
+            if (!modelInitialized)
+            {
+                throw new InvalidOperationException("Model not initialized!");
+            }
+
+            modelInitialized = false;
+
+            var key = modelSourceDependencies.ModelCacheKeyFactory.Create(pDbContext, false);
+            modelSourceDependencies.MemoryCache.Remove(key);
+
+            var emptyModel = dependencies.ModelSource.GetModel(pDbContext, dependencies, false);
+            var model = dependencies.ModelRuntimeInitializer.Initialize(emptyModel, false, dependencies.ValidationLogger);
+
+            if (!modelInitialized)
+            {
+                throw new InvalidOperationException("Model not initialized!");
+            }
 
             IServiceCollection services = new ServiceCollection();
             services.AddDbContextDesignTimeServices(pDbContext);
             services.AddEntityFrameworkDesignTimeServices();
 
-#pragma warning disable EF1001 // Internal EF Core API usage.
             new NpgsqlDesignTimeServices().ConfigureDesignTimeServices(services);
 #pragma warning restore EF1001 // Internal EF Core API usage.
 
@@ -116,9 +140,8 @@ namespace DynamixGenerator.EfCore
             var migSqlGen = infrastructure.GetService<IMigrationsSqlGenerator>();
             var modelDiffer = infrastructure.GetService<IMigrationsModelDiffer>();
             var conn = infrastructure.GetService<IRelationalConnection>();
-            var designTimeModel = infrastructure.GetService<IDesignTimeModel>();
-
-            var model = designTimeModel.Model;
+            //var designTimeModel = infrastructure.GetService<IDesignTimeModel>();
+            // var model = designTimeModel.Model;
 
             var assemblyLoadContext = new AssemblyLoadContext("DbContext_generated", isCollectible: !enableLazyLoading);
 
@@ -135,8 +158,8 @@ namespace DynamixGenerator.EfCore
 
             var dynamicModel = dynamicContext.GetService<IDesignTimeModel>().Model.GetRelationalModel();
 
-            var diffs = modelDiffer.GetDifferences(dynamicModel, model.GetRelationalModel());
-            var sqlcmds = migSqlGen.Generate(diffs, model, MigrationsSqlGenerationOptions.Default);
+            var diffs = modelDiffer.GetDifferences(dynamicModel, designTimeModel.GetRelationalModel());
+            var sqlcmds = migSqlGen.Generate(diffs, designTimeModel, MigrationsSqlGenerationOptions.Default);
 
             string totalsql = string.Join(Environment.NewLine, sqlcmds.Select(s => s.CommandText));
 
